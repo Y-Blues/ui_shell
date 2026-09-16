@@ -1,10 +1,5 @@
-"""
-ScreenApp: renders a ycappuccino.ui.model.Screen as a real textual.app.App -- one Input/Checkbox/
-Select widget per Field (by Field.type), one Button per Action. ycappuccino.ui.validation
-.validate_screen() runs before any Action fires; ycappuccino.ui.transport.perform_action() is the
-one and only way an Action is called -- this module never invokes application code directly, only
-the generic dispatch, with a Transport supplied by whoever deploys the screen.
-"""
+"""Renders a Screen as a real textual App: one widget per Field, one Button per Action,
+validated then dispatched through perform_action()."""
 
 from typing import Any
 
