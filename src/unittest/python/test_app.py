@@ -97,6 +97,23 @@ class TestScreenApp(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(transport.calls[0][4], {"count": 42})
 
+    async def test_password_field_masks_input_and_round_trips(self):
+        transport = FakeTransport()
+        screen = Screen(
+            title="s",
+            fields=(Field(name="password", label="Password", type="password", required=True),),
+            actions=(Action(name="submit", label="Submit", endpoint=Endpoint(service="login")),),
+        )
+        app = ScreenApp(screen, transport)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one("#field-password")
+            self.assertTrue(widget.password)
+            widget.value = "secret"
+            await pilot.click("#action-submit")
+
+        self.assertEqual(transport.calls[0][4], {"password": "secret"})
+
     async def test_endpoint_method_and_path_are_forwarded(self):
         transport = FakeTransport()
         screen = Screen(

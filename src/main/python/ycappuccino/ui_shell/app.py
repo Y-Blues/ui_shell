@@ -77,7 +77,8 @@ def _build_widget(a_field: Field):
     if a_field.type == "choice":
         default = a_field.default if a_field.default in a_field.choices else Select.NULL
         return Select([(choice, choice) for choice in a_field.choices], value=default, id=widget_id)
-    return Input(value="" if a_field.default is None else str(a_field.default), id=widget_id)
+    value = "" if a_field.default is None else str(a_field.default)
+    return Input(value=value, password=a_field.type == "password", id=widget_id)
 
 
 def _widget_value(a_field: Field, widget) -> Any:
