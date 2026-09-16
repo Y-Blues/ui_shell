@@ -114,6 +114,21 @@ class TestScreenApp(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(transport.calls[0][4], {"password": "secret"})
 
+    async def test_list_field_splits_on_commas(self):
+        transport = FakeTransport()
+        screen = Screen(
+            title="s",
+            fields=(Field(name="rights", label="Rights", type="list", required=True),),
+            actions=(Action(name="submit", label="Submit", endpoint=Endpoint(service="login")),),
+        )
+        app = ScreenApp(screen, transport)
+
+        async with app.run_test() as pilot:
+            app.query_one("#field-rights").value = "read:book, write:book ,*:*"
+            await pilot.click("#action-submit")
+
+        self.assertEqual(transport.calls[0][4], {"rights": ["read:book", "write:book", "*:*"]})
+
     async def test_endpoint_method_and_path_are_forwarded(self):
         transport = FakeTransport()
         screen = Screen(

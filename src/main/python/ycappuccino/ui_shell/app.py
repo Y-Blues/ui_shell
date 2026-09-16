@@ -87,6 +87,8 @@ def _widget_value(a_field: Field, widget) -> Any:
         return None if value is Select.NULL else value
     if a_field.type == "number":
         return None if widget.value == "" else _to_number(widget.value)
+    if a_field.type == "list":
+        return [item.strip() for item in widget.value.split(",") if item.strip()]
     return widget.value
 
 
