@@ -3,6 +3,27 @@ revision = 3
 requires-python = ">=3.10"
 
 [[package]]
+name = "ipopo"
+version = "3.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jsonrpclib-pelix" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ed/1b/3667df1b829d7a17bf15bb054e275eaf52d36f4125b498c483c975829f09/ipopo-3.2.2.tar.gz", hash = "sha256:a7e16834c6c49e6413183ccd59fbf24bd56401fe853b29a351bacc155d87ec56", size = 1080416, upload-time = "2026-08-10T15:17:56.598Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/f2/a95b14ccee2484baac92b7d76b03e88881c48a2d6f37f07f575de2ac8e79/ipopo-3.2.2-py3-none-any.whl", hash = "sha256:3889f4a2e050ff42ca423a41534d008dc1b1b38127a3a127ab24d5254f8db35b", size = 451238, upload-time = "2026-08-10T15:17:54.733Z" },
+]
+
+[[package]]
+name = "jsonrpclib-pelix"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/6d/927abe6f53a8b1db48dbbcd35b7d762431952d5f760f500287c6952540fa/jsonrpclib_pelix-1.1.0.tar.gz", hash = "sha256:379a3c9b3dd478727419587aa7cf14bb6ff0e64301decc0ffa98f710f6bfec1e", size = 70500, upload-time = "2026-05-30T19:59:45.754Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/2b/62d35a49a04a51906fdcaa1e4b5707bb8a8105479b53843ec43c24c5e13a/jsonrpclib_pelix-1.1.0-py3-none-any.whl", hash = "sha256:487b5d0b503abff8a16b5f19bff4040725e8958f381611ff4f47029482012a9f", size = 43444, upload-time = "2026-05-30T19:59:44.568Z" },
+]
+
+[[package]]
 name = "linkify-it-py"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -171,15 +192,30 @@ wheels = [
 ]
 
 [[package]]
+name = "ycappuccino-api"
+version = "0.1.0"
+source = { editable = "../api" }
+dependencies = [
+    { name = "ipopo" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ipopo", specifier = ">=3.0" }]
+
+[[package]]
 name = "ycappuccino-ui"
 version = "0.1.0"
 source = { editable = "../ui" }
 dependencies = [
     { name = "pyyaml" },
+    { name = "ycappuccino-api" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pyyaml" }]
+requires-dist = [
+    { name = "pyyaml" },
+    { name = "ycappuccino-api", editable = "../api" },
+]
 
 [[package]]
 name = "ycappuccino-ui-shell"

@@ -51,6 +51,17 @@ screen = load_screen_yaml(SCREEN_YAML)
 test, voir plus bas.
 ```
 
+## Une console entière : `ShellApplication`
+
+`ycappuccino.ui_shell.application.ShellApplication(application, screens, transports, on_signed_in,
+on_signed_out)` est une App textual qui rend une `ycappuccino.ui.application.Application` (voir le README
+de `ui`) : écran de connexion, menu à boutons, écrans enchaînés et pré-remplis, message « Enregistré. »,
+déconnexion. `ui_web` rend la même `Application` dans un navigateur. `screens` charge un `Screen` par son
+nom, `transports` associe un nom à un `Transport`. `.run()` la lance.
+
+Un écran seul existe aussi comme widget, `ScreenForm(screen, transport, on_result)` : un appel refusé
+affiche son message dans la ligne `#status`, un appel réussi est passé à `on_result`.
+
 ## Tester un écran
 
 `ScreenApp` s'instancie et se pilote directement, sans `run_screen()`, via l'API de test de `textual`
