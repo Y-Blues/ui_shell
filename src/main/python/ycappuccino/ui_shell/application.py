@@ -34,13 +34,16 @@ class ShellApplication(App):
         height: auto;
     }
     #menus Select {
-        width: 1fr;
+        margin-right: 2;
+    }
+    #menus SelectOverlay {
+        constrain: inside inside;
     }
     #session {
         align-horizontal: right;
     }
     #user {
-        margin: 1 2;
+        margin-right: 2;
         color: $accent;
         text-style: bold;
     }
@@ -71,18 +74,26 @@ class ShellApplication(App):
         with Vertical(id="nav"):
             with Horizontal(id="menus"):
                 for index, group in enumerate(self._application.menu):
-                    yield Select(
+                    menu = Select(
                         [(entry.label, entry_index) for entry_index, entry in enumerate(group.entries)],
                         prompt=group.label,
                         id=f"{_MENU_PREFIX}{index}",
+                        compact=True,
                     )
+                    # as wide as its label and arrow, like a menu of a site bar
+                    menu.styles.width = len(group.label) + 4
+                    yield menu
             with Horizontal(id="session"):
                 yield Label("", id="user")
-                yield Button(self._application.sign_out, id="sign-out")
+                yield Button(self._application.sign_out, id="sign-out", compact=True)
         yield VerticalScroll(id="main")
         yield Footer()
 
     async def on_mount(self) -> None:
+        for index, group in enumerate(self._application.menu):
+            # the open list as wide as its longest entry, each shown whole
+            overlay = self.query_one(f"#{_MENU_PREFIX}{index}", Select).query_one("SelectOverlay")
+            overlay.styles.width = max(len(text) for text in [group.label, *(entry.label for entry in group.entries)]) + 4
         await self.show_login()
 
     async def show_login(self) -> None:

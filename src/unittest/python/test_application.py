@@ -162,7 +162,7 @@ menu:
   - {label: Mon compte, entries: [{label: a, steps: [{screen: role, transport: data}]}]}
   - {label: Organisations, entries: [{label: b, steps: [{screen: role, transport: data}]}]}
   - {label: Rôles et permissions, entries: [{label: c, steps: [{screen: role, transport: data}]}]}
-  - {label: Utilisateurs, entries: [{label: d, steps: [{screen: role, transport: data}]}]}
+  - {label: Utilisateurs, entries: [{label: Créer un utilisateur, steps: [{screen: role, transport: data}]}]}
 """)
 
         async def noop(*args):
@@ -179,6 +179,19 @@ menu:
             for widget in [*app.query(Select), app.query_one("#user"), app.query_one("#sign-out")]:
                 with self.subTest(widget=widget.id):
                     self.assertTrue(screen.contains_region(widget.region), f"{widget.id} at {widget.region}")
+            for select in app.query(Select):
+                with self.subTest(select=select.prompt):
+                    # a one-line bar, each section label whole
+                    self.assertEqual(select.region.height, 1)
+                    self.assertGreaterEqual(select.region.width, len(select.prompt) + 2)
+            users = app.query_one("#menu-3", Select)
+            users.focus()
+            await pilot.press("enter")
+            await pilot.pause()
+            overlay = users.query_one("SelectOverlay")
+            # the open list shows each entry whole, on one line
+            self.assertGreaterEqual(overlay.region.width, len("Créer un utilisateur") + 2)
+            self.assertTrue(screen.contains_region(overlay.region), f"open list at {overlay.region}")
 
 
 if __name__ == "__main__":
