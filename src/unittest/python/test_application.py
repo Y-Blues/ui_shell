@@ -154,5 +154,32 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(self.app.query("#field-user")), 1)
 
 
+    async def test_at_80_columns_four_sections_the_user_and_sign_out_all_fit(self):
+        wide = load_application_yaml("""
+title: Administration
+login: {screen: login, transport: auth, user: user}
+menu:
+  - {label: Mon compte, entries: [{label: a, steps: [{screen: role, transport: data}]}]}
+  - {label: Organisations, entries: [{label: b, steps: [{screen: role, transport: data}]}]}
+  - {label: Rôles et permissions, entries: [{label: c, steps: [{screen: role, transport: data}]}]}
+  - {label: Utilisateurs, entries: [{label: d, steps: [{screen: role, transport: data}]}]}
+""")
+
+        async def noop(*args):
+            pass
+
+        app = ShellApplication(wide, SCREENS.__getitem__, {"auth": self.auth, "data": self.data}, noop, noop)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            app.query_one("#field-user").value = "administrator"
+            await pilot.click("#action-submit")
+            await pilot.pause()
+
+            screen = app.screen.region
+            for widget in [*app.query(Select), app.query_one("#user"), app.query_one("#sign-out")]:
+                with self.subTest(widget=widget.id):
+                    self.assertTrue(screen.contains_region(widget.region), f"{widget.id} at {widget.region}")
+
+
 if __name__ == "__main__":
     unittest.main()

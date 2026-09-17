@@ -58,8 +58,8 @@ on_signed_out)` est une App textual qui rend une `ycappuccino.ui.application.App
 de `ui`), avec le même layout que `ui_web` dans un navigateur :
 
 - avant connexion, l'écran de connexion seul ;
-- ensuite une barre `#nav` : un menu déroulant (`Select`) par section, l'utilisateur connecté (`#user`) et
-  « Se déconnecter » (`#sign-out`), au-dessus d'une zone défilante `#main` : le message de bienvenue, les
+- ensuite une barre `#nav` sur deux lignes, pour tenir en 80 colonnes : un menu déroulant (`Select`) par
+  section, puis l'utilisateur connecté (`#user`) et « Se déconnecter » (`#sign-out`), au-dessus d'une zone défilante `#main` : le message de bienvenue, les
   écrans d'une entrée (pré-remplis depuis l'étape précédente), puis « Enregistré. ».
 
 `screens` charge un `Screen` par son nom, `transports` associe un nom à un `Transport`. `.run()` la lance.

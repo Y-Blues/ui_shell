@@ -8,7 +8,7 @@ message. ui_web's WebApplication renders the same Application in a browser.
 from typing import Any, Awaitable, Callable
 
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widget import Widget
 from textual.widgets import Button, Footer, Header, Label, Select
 
@@ -22,6 +22,7 @@ _MENU_PREFIX = "menu-"
 
 class ShellApplication(App):
 
+    # the bar holds two rows, as the web one wraps: the sections sharing the width, then the user and sign-out
     DEFAULT_CSS = """
     #nav {
         height: auto;
@@ -29,17 +30,19 @@ class ShellApplication(App):
         background: $boost;
         border-bottom: solid $accent;
     }
-    #nav Select {
-        width: 30;
-        margin-right: 1;
+    #menus, #session {
+        height: auto;
+    }
+    #menus Select {
+        width: 1fr;
+    }
+    #session {
+        align-horizontal: right;
     }
     #user {
         margin: 1 2;
         color: $accent;
         text-style: bold;
-    }
-    #nav-spacer {
-        width: 1fr;
     }
     #main {
         padding: 1 2;
@@ -65,16 +68,17 @@ class ShellApplication(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with Horizontal(id="nav"):
-            for index, group in enumerate(self._application.menu):
-                yield Select(
-                    [(entry.label, entry_index) for entry_index, entry in enumerate(group.entries)],
-                    prompt=group.label,
-                    id=f"{_MENU_PREFIX}{index}",
-                )
-            yield Label("", id="nav-spacer")
-            yield Label("", id="user")
-            yield Button(self._application.sign_out, id="sign-out")
+        with Vertical(id="nav"):
+            with Horizontal(id="menus"):
+                for index, group in enumerate(self._application.menu):
+                    yield Select(
+                        [(entry.label, entry_index) for entry_index, entry in enumerate(group.entries)],
+                        prompt=group.label,
+                        id=f"{_MENU_PREFIX}{index}",
+                    )
+            with Horizontal(id="session"):
+                yield Label("", id="user")
+                yield Button(self._application.sign_out, id="sign-out")
         yield VerticalScroll(id="main")
         yield Footer()
 
