@@ -8,7 +8,7 @@ from textual.containers import Vertical
 from textual.widget import Widget
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label, Select
 
-from ycappuccino.ui.model import Field, Screen
+from ycappuccino.ui.model import Action, Field, Screen
 from ycappuccino.ui.transport import Transport, perform_action
 from ycappuccino.ui.validation import validate_screen
 
@@ -51,13 +51,26 @@ class ScreenForm(Vertical):
             yield Button(action.label, id=f"{_ACTION_PREFIX}{action.name}")
         yield Label("", id="status")
 
+    def on_mount(self) -> None:
+        # typing goes straight to the first field
+        fields = [self.query_one(f"#{_FIELD_PREFIX}{a_field.name}") for a_field in self._screen.fields]
+        if fields:
+            fields[0].focus()
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        # Enter in a field runs the first action, as in a web form
+        event.stop()
+        if self._screen.actions:
+            await self._run(self._screen.actions[0])
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if not (event.button.id or "").startswith(_ACTION_PREFIX):
             return
         event.stop()
         action_name = event.button.id[len(_ACTION_PREFIX):]
-        action = next(a for a in self._screen.actions if a.name == action_name)
+        await self._run(next(a for a in self._screen.actions if a.name == action_name))
 
+    async def _run(self, action: Action) -> None:
         values = self._collect_values()
         errors = validate_screen(self._screen, values)
         self.last_values = values

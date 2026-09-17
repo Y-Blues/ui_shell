@@ -9,14 +9,14 @@ from ycappuccino.ui.model import Action, Endpoint, Field, Screen
 from ycappuccino.ui_shell.app import ScreenApp
 
 SCREEN_YAML = """
-title: Connexion
+title: Sign in
 fields:
   - name: username
-    label: Nom d'utilisateur
+    label: Username
     required: true
 actions:
   - name: submit
-    label: Se connecter
+    label: Sign in
     endpoint:
       service: login
       method: POST
@@ -43,7 +43,7 @@ class TestReadme(unittest.TestCase):
     def test_afficher_un_ecran_loads(self):
         screen = load_screen_yaml(SCREEN_YAML)
 
-        self.assertEqual(screen.title, "Connexion")
+        self.assertEqual(screen.title, "Sign in")
 
 
 class TestLogin(unittest.IsolatedAsyncioTestCase):
@@ -51,9 +51,9 @@ class TestLogin(unittest.IsolatedAsyncioTestCase):
     async def test_submits_the_username(self):
         transport = FakeTransport(result={"token": "abc"})
         screen = Screen(
-            title="Connexion",
-            fields=(Field(name="username", label="Nom d'utilisateur", required=True),),
-            actions=(Action(name="submit", label="Se connecter", endpoint=Endpoint(service="login")),),
+            title="Sign in",
+            fields=(Field(name="username", label="Username", required=True),),
+            actions=(Action(name="submit", label="Sign in", endpoint=Endpoint(service="login")),),
         )
         app = ScreenApp(screen, transport)
 

@@ -10,14 +10,14 @@ APPLICATION = load_application_yaml("""
 title: Administration
 login: {screen: login, transport: auth, user: user}
 menu:
-  - label: Rôles
+  - label: Roles
     entries:
-      - label: Créer un rôle
+      - label: Create a role
         steps:
           - {screen: role, transport: data}
-  - label: Utilisateurs
+  - label: Users
     entries:
-      - label: Créer un utilisateur
+      - label: Create a user
         steps:
           - {screen: credentials, transport: data}
           - {screen: profile, transport: data, prefill: {login: values.login, id: result._id}}
@@ -28,7 +28,7 @@ def _screen(title, *names):
     return Screen(
         title=title,
         fields=tuple(Field(name=name, label=name) for name in names),
-        actions=(Action(name="submit", label="Valider", endpoint=Endpoint(service=title)),),
+        actions=(Action(name="submit", label="Submit", endpoint=Endpoint(service=title)),),
     )
 
 
@@ -100,10 +100,22 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(self.events, [("in", {"_id": "login-1"})])
             self.assertTrue(self.app.query_one("#nav").display)
-            self.assertEqual([select.prompt for select in self.app.query(Select)], ["Rôles", "Utilisateurs"])
+            self.assertEqual([select.prompt for select in self.app.query(Select)], ["Roles", "Users"])
             self.assertEqual(self._text("#user"), "alice")
-            self.assertEqual(str(self.app.query_one("#sign-out", Button).label), "Se déconnecter")
-            self.assertEqual(self._text("#message"), "Bienvenue alice.")
+            self.assertEqual(str(self.app.query_one("#sign-out", Button).label), "Sign out")
+            self.assertEqual(self._text("#message"), "Welcome, alice.")
+
+    async def test_each_screen_opens_with_its_first_field_focused_and_enter_submits(self):
+        async with self.app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press(*"alice")
+            self.assertEqual(self.app.query_one("#field-user").value, "alice")
+
+            await pilot.press("enter")
+            await pilot.pause()
+            self.assertEqual(self.events, [("in", {"_id": "login-1"})])  # Enter in a field runs the first action
+            await self._choose(pilot, "Roles", "Create a role")
+            self.assertIs(self.app.focused, self.app.query_one("#field-name"))
 
     async def test_a_refused_login_stays_on_the_login_screen(self):
         self.auth.fail = True
@@ -119,20 +131,20 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
-            await self._choose(pilot, "Rôles", "Créer un rôle")
+            await self._choose(pilot, "Roles", "Create a role")
 
             self.assertTrue(self.app.query(Select).first().is_blank())
             await self._submit(pilot, name="editor")
 
             self.assertEqual(self.data.calls, [("role", {"name": "editor"})])
-            self.assertEqual(self._text("#message"), "Enregistré.")
+            self.assertEqual(self._text("#message"), "Saved.")
             self.assertTrue(self.app.query_one("#nav").display)
 
     async def test_chained_steps_are_prefilled_from_the_previous_one(self):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
-            await self._choose(pilot, "Utilisateurs", "Créer un utilisateur")
+            await self._choose(pilot, "Users", "Create a user")
             await self._submit(pilot, login="bob")
 
             self.assertEqual(
@@ -159,10 +171,10 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
 title: Administration
 login: {screen: login, transport: auth, user: user}
 menu:
-  - {label: Mon compte, entries: [{label: a, steps: [{screen: role, transport: data}]}]}
-  - {label: Organisations, entries: [{label: b, steps: [{screen: role, transport: data}]}]}
-  - {label: Rôles et permissions, entries: [{label: c, steps: [{screen: role, transport: data}]}]}
-  - {label: Utilisateurs, entries: [{label: Créer un utilisateur, steps: [{screen: role, transport: data}]}]}
+  - {label: My account, entries: [{label: a, steps: [{screen: role, transport: data}]}]}
+  - {label: Organizations, entries: [{label: b, steps: [{screen: role, transport: data}]}]}
+  - {label: Roles and permissions, entries: [{label: c, steps: [{screen: role, transport: data}]}]}
+  - {label: Users, entries: [{label: Create a user, steps: [{screen: role, transport: data}]}]}
 """)
 
         async def noop(*args):
@@ -190,7 +202,7 @@ menu:
             await pilot.pause()
             overlay = users.query_one("SelectOverlay")
             # the open list shows each entry whole, on one line
-            self.assertGreaterEqual(overlay.region.width, len("Créer un utilisateur") + 2)
+            self.assertGreaterEqual(overlay.region.width, len("Create a user") + 2)
             self.assertTrue(screen.contains_region(overlay.region), f"open list at {overlay.region}")
 
 

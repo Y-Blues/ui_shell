@@ -22,14 +22,14 @@ from ycappuccino.ui.loader import load_screen_yaml
 from ycappuccino.ui_shell.app import run_screen
 
 SCREEN_YAML = """
-title: Connexion
+title: Sign in
 fields:
   - name: username
-    label: Nom d'utilisateur
+    label: Username
     required: true
 actions:
   - name: submit
-    label: Se connecter
+    label: Sign in
     endpoint:
       service: login
       method: POST
@@ -60,8 +60,8 @@ de `ui`), avec le même layout que `ui_web` dans un navigateur :
 - avant connexion, l'écran de connexion seul ;
 - ensuite une barre `#nav` sur deux lignes, pour tenir en 80 colonnes : un menu déroulant compact (`Select`)
   par section, large comme son titre, dont la liste ouverte montre chaque entrée en entier ; puis
-  l'utilisateur connecté (`#user`) et « Se déconnecter » (`#sign-out`), au-dessus d'une zone défilante `#main` : le message de bienvenue, les
-  écrans d'une entrée (pré-remplis depuis l'étape précédente), puis « Enregistré. ».
+  l'utilisateur connecté (`#user`) et « Sign out » (`#sign-out`), au-dessus d'une zone défilante `#main` : le message de bienvenue, les
+  écrans d'une entrée (pré-remplis depuis l'étape précédente), puis « Saved. ».
 
 `screens` charge un `Screen` par son nom, `transports` associe un nom à un `Transport`. `.run()` la lance.
 
@@ -94,9 +94,9 @@ class TestLogin(unittest.IsolatedAsyncioTestCase):
     async def test_submits_the_username(self):
         transport = FakeTransport(result={"token": "abc"})
         screen = Screen(
-            title="Connexion",
-            fields=(Field(name="username", label="Nom d'utilisateur", required=True),),
-            actions=(Action(name="submit", label="Se connecter", endpoint=Endpoint(service="login")),),
+            title="Sign in",
+            fields=(Field(name="username", label="Username", required=True),),
+            actions=(Action(name="submit", label="Sign in", endpoint=Endpoint(service="login")),),
         )
         app = ScreenApp(screen, transport)
 
