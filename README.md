@@ -47,10 +47,9 @@ class HttpTransport:
 
 screen = load_screen_yaml(SCREEN_YAML)
 # run_screen(screen, HttpTransport())  # bloquant, lance le vrai terminal -- pas appelé dans les tests
-```
-
 `run_screen(screen, transport)` est bloquant (lance la boucle `textual`) : ce n'est jamais ce qu'appelle un
 test, voir plus bas.
+```
 
 ## Tester un écran
 
@@ -95,9 +94,3 @@ class TestLogin(unittest.IsolatedAsyncioTestCase):
 Seul le `Transport` est falsifié : la validation, le rendu des widgets et la navigation sont exercés pour
 de vrai, pas simulés.
 
-## Développer ui_shell
-
-```bash
-uv sync
-uv run python -m unittest discover -s src/unittest/python
-```
