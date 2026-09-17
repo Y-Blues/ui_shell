@@ -24,6 +24,13 @@ class ScreenForm(Vertical):
     action goes through perform_action(); a refused call shows its message in the status line, a
     successful one is handed to on_result."""
 
+    # as tall as its content, so a scrolling parent can reach every field and button
+    DEFAULT_CSS = """
+    ScreenForm {
+        height: auto;
+    }
+    """
+
     def __init__(self, screen: Screen, transport: Transport, on_result: OnResult | None = None) -> None:
         super().__init__()
         self._screen = screen

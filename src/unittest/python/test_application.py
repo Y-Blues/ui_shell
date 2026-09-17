@@ -1,6 +1,6 @@
 import unittest
 
-from textual.widgets import Button, Label
+from textual.widgets import Button, Label, Select
 
 from ycappuccino.ui.application import load_application_yaml
 from ycappuccino.ui.model import Action, Endpoint, Field, Screen
@@ -8,15 +8,19 @@ from ycappuccino.ui_shell.application import ShellApplication
 
 APPLICATION = load_application_yaml("""
 title: Administration
-login: {screen: login, transport: auth}
+login: {screen: login, transport: auth, user: user}
 menu:
-  - label: Créer un rôle
-    steps:
-      - {screen: role, transport: data}
-  - label: Créer un utilisateur
-    steps:
-      - {screen: credentials, transport: data}
-      - {screen: profile, transport: data, prefill: {login: values.login, id: result._id}}
+  - label: Rôles
+    entries:
+      - label: Créer un rôle
+        steps:
+          - {screen: role, transport: data}
+  - label: Utilisateurs
+    entries:
+      - label: Créer un utilisateur
+        steps:
+          - {screen: credentials, transport: data}
+          - {screen: profile, transport: data, prefill: {login: values.login, id: result._id}}
 """)
 
 
@@ -65,28 +69,41 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
             APPLICATION, SCREENS.__getitem__, {"auth": self.auth, "data": self.data}, signed_in, signed_out
         )
 
-    def _buttons(self):
-        return [str(button.label) for button in self.app.query(Button)]
-
     async def _submit(self, pilot, **values):
         for name, value in values.items():
             self.app.query_one(f"#field-{name}").value = value
+        self.app.query_one("#action-submit").scroll_visible(animate=False)
+        await pilot.pause()
         await pilot.click("#action-submit")
         await pilot.pause()
 
-    async def _choose(self, pilot, label):
-        button = next(button for button in self.app.query(Button) if str(button.label) == label)
-        await pilot.click(f"#{button.id}")
+    async def _choose(self, pilot, section, entry):
+        menu = next(select for select in self.app.query(Select) if select.prompt == section)
+        group = next(group for group in APPLICATION.menu if group.label == section)
+        menu.value = [menu_entry.label for menu_entry in group.entries].index(entry)
         await pilot.pause()
 
-    async def test_login_then_the_menu_with_its_entries_and_sign_out(self):
+    def _text(self, selector):
+        return str(self.app.query_one(selector, Label).content)
+
+    async def test_before_login_the_bar_is_hidden(self):
+        async with self.app.run_test() as pilot:
+            await pilot.pause()
+
+            self.assertFalse(self.app.query_one("#nav").display)
+            self.assertEqual(len(self.app.query("#field-user")), 1)
+
+    async def test_login_shows_the_bar_with_one_dropdown_per_section_the_user_and_the_welcome(self):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
 
             self.assertEqual(self.events, [("in", {"_id": "login-1"})])
-            self.assertEqual(self._buttons(), ["Créer un rôle", "Créer un utilisateur", "Se déconnecter"])
-            self.assertEqual(str(self.app.query_one("#menu-title", Label).content), "Administration")
+            self.assertTrue(self.app.query_one("#nav").display)
+            self.assertEqual([select.prompt for select in self.app.query(Select)], ["Rôles", "Utilisateurs"])
+            self.assertEqual(self._text("#user"), "alice")
+            self.assertEqual(str(self.app.query_one("#sign-out", Button).label), "Se déconnecter")
+            self.assertEqual(self._text("#message"), "Bienvenue alice.")
 
     async def test_a_refused_login_stays_on_the_login_screen(self):
         self.auth.fail = True
@@ -95,25 +112,27 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
             await self._submit(pilot, user="alice")
 
             self.assertEqual(self.events, [])
-            self.assertEqual(str(self.app.query_one("#status", Label).content), "refused")
+            self.assertEqual(self._text("#status"), "refused")
+            self.assertFalse(self.app.query_one("#nav").display)
 
-    async def test_an_entry_runs_its_step_then_shows_saved_and_back_to_the_menu(self):
+    async def test_an_entry_runs_its_step_resets_its_dropdown_and_keeps_the_bar(self):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
-            await self._choose(pilot, "Créer un rôle")
+            await self._choose(pilot, "Rôles", "Créer un rôle")
+
+            self.assertTrue(self.app.query(Select).first().is_blank())
             await self._submit(pilot, name="editor")
 
             self.assertEqual(self.data.calls, [("role", {"name": "editor"})])
-            self.assertEqual(str(self.app.query_one("#message", Label).content), "Enregistré.")
-            await self._choose(pilot, "Retour au menu")
-            self.assertIn("Créer un rôle", self._buttons())
+            self.assertEqual(self._text("#message"), "Enregistré.")
+            self.assertTrue(self.app.query_one("#nav").display)
 
     async def test_chained_steps_are_prefilled_from_the_previous_one(self):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
-            await self._choose(pilot, "Créer un utilisateur")
+            await self._choose(pilot, "Utilisateurs", "Créer un utilisateur")
             await self._submit(pilot, login="bob")
 
             self.assertEqual(
@@ -123,13 +142,15 @@ class TestShellApplication(unittest.IsolatedAsyncioTestCase):
             await self._submit(pilot, name="Bob")
             self.assertEqual(self.data.calls[-1], ("profile", {"login": "bob", "id": "credentials-1", "name": "Bob"}))
 
-    async def test_sign_out_returns_to_the_login_screen(self):
+    async def test_sign_out_hides_the_bar_and_returns_to_the_login_screen(self):
         async with self.app.run_test() as pilot:
             await pilot.pause()
             await self._submit(pilot, user="alice")
-            await self._choose(pilot, "Se déconnecter")
+            await pilot.click("#sign-out")
+            await pilot.pause()
 
             self.assertEqual(self.events[-1], ("out",))
+            self.assertFalse(self.app.query_one("#nav").display)
             self.assertEqual(len(self.app.query("#field-user")), 1)
 
 

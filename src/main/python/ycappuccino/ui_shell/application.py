@@ -1,45 +1,50 @@
 """
 ShellApplication: renders a ycappuccino.ui.application.Application as one textual App -- the login screen,
-then the menu, each entry's chained screens (prefilled from the previous one), the saved message and
-sign-out. ui_web's WebApplication renders the same Application in a browser.
+then a navigation bar (#nav: one Select dropdown per menu section, the signed-in user, sign-out) above the
+content (#main): the welcome, each entry's chained screens (prefilled from the previous one), the saved
+message. ui_web's WebApplication renders the same Application in a browser.
 """
 
 from typing import Any, Awaitable, Callable
 
 from textual.app import App, ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, VerticalScroll
 from textual.widget import Widget
-from textual.widgets import Button, Footer, Header, Label
+from textual.widgets import Button, Footer, Header, Label, Select
 
 from ycappuccino.ui.application import Application, Step, prefill_values, with_defaults
 from ycappuccino.ui.model import Screen
 from ycappuccino.ui.transport import Transport
 from ycappuccino.ui_shell.app import ScreenForm
 
-Choice = Callable[[], Awaitable[None]]
-
-
-class _Choices(Vertical):
-    """a title or message, then one button per choice"""
-
-    def __init__(self, text: str, text_id: str, choices: list[tuple[str, Choice]]) -> None:
-        super().__init__()
-        self._text = text
-        self._text_id = text_id
-        self._choices = {f"choice-{index}": choice for index, (_, choice) in enumerate(choices)}
-        self._labels = [label for label, _ in choices]
-
-    def compose(self) -> ComposeResult:
-        yield Label(self._text, id=self._text_id)
-        for index, label in enumerate(self._labels):
-            yield Button(label, id=f"choice-{index}")
-
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        event.stop()
-        await self._choices[event.button.id]()
+_MENU_PREFIX = "menu-"
 
 
 class ShellApplication(App):
+
+    DEFAULT_CSS = """
+    #nav {
+        height: auto;
+        padding: 0 1;
+        background: $boost;
+        border-bottom: solid $accent;
+    }
+    #nav Select {
+        width: 30;
+        margin-right: 1;
+    }
+    #user {
+        margin: 1 2;
+        color: $accent;
+        text-style: bold;
+    }
+    #nav-spacer {
+        width: 1fr;
+    }
+    #main {
+        padding: 1 2;
+    }
+    """
 
     def __init__(
         self,
@@ -60,31 +65,51 @@ class ShellApplication(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Vertical(id="main")
+        with Horizontal(id="nav"):
+            for index, group in enumerate(self._application.menu):
+                yield Select(
+                    [(entry.label, entry_index) for entry_index, entry in enumerate(group.entries)],
+                    prompt=group.label,
+                    id=f"{_MENU_PREFIX}{index}",
+                )
+            yield Label("", id="nav-spacer")
+            yield Label("", id="user")
+            yield Button(self._application.sign_out, id="sign-out")
+        yield VerticalScroll(id="main")
         yield Footer()
 
     async def on_mount(self) -> None:
         await self.show_login()
 
     async def show_login(self) -> None:
+        self.query_one("#nav").display = False
         login = self._application.login
 
         async def signed_in(result: Any) -> None:
             await self._on_signed_in(result)
-            self._later(self.show_menu)
+            user = form.last_values.get(self._application.user_field) if self._application.user_field else None
+            self._later(self.show_home, user)
 
-        await self._show(ScreenForm(self._screens(login.screen), self._transports[login.transport], signed_in))
+        form = ScreenForm(self._screens(login.screen), self._transports[login.transport], signed_in)
+        await self._show(form)
 
-    async def show_menu(self) -> None:
-        choices = [(entry.label, self._runner(entry.steps)) for entry in self._application.menu]
-        choices.append((self._application.sign_out, self._sign_out))
-        await self._show(_Choices(self._application.title, "menu-title", choices))
+    async def show_home(self, user: str | None) -> None:
+        self.query_one("#user", Label).update(user or "")
+        self.query_one("#nav").display = True
+        await self._show(Label(self._application.welcome_text(user), id="message"))
 
-    def _runner(self, steps: tuple[Step, ...]) -> Choice:
-        async def run() -> None:
-            self._later(self._show_step, steps, 0, {}, None)
+    async def on_select_changed(self, event: Select.Changed) -> None:
+        select_id = event.select.id or ""
+        if not select_id.startswith(_MENU_PREFIX) or event.select.is_blank():
+            return
+        entry = self._application.menu[int(select_id[len(_MENU_PREFIX):])].entries[event.value]
+        event.select.clear()
+        self._later(self._show_step, entry.steps, 0, {}, None)
 
-        return run
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "sign-out":
+            await self._on_signed_out()
+            self._later(self.show_login)
 
     async def _show_step(self, steps: tuple[Step, ...], index: int, previous_values: dict, previous_result: Any) -> None:
         step = steps[index]
@@ -94,26 +119,16 @@ class ShellApplication(App):
             if index + 1 < len(steps):
                 self._later(self._show_step, steps, index + 1, form.last_values, result)
             else:
-                self._later(self._show_saved)
+                self._later(self._show, Label(self._application.saved, id="message"))
 
         form = ScreenForm(screen, self._transports[step.transport], done)
         await self._show(form)
-
-    async def _show_saved(self) -> None:
-        async def back() -> None:
-            self._later(self.show_menu)
-
-        await self._show(_Choices(self._application.saved, "message", [(self._application.back, back)]))
-
-    async def _sign_out(self) -> None:
-        await self._on_signed_out()
-        self._later(self.show_login)
 
     def _later(self, show: Callable[..., Awaitable[None]], *args: Any) -> None:
         # never replace the widget whose button handler is still running
         self.call_later(show, *args)
 
     async def _show(self, widget: Widget) -> None:
-        main = self.query_one("#main", Vertical)
+        main = self.query_one("#main", VerticalScroll)
         await main.remove_children()
         await main.mount(widget)

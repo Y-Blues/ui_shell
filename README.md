@@ -55,9 +55,14 @@ test, voir plus bas.
 
 `ycappuccino.ui_shell.application.ShellApplication(application, screens, transports, on_signed_in,
 on_signed_out)` est une App textual qui rend une `ycappuccino.ui.application.Application` (voir le README
-de `ui`) : écran de connexion, menu à boutons, écrans enchaînés et pré-remplis, message « Enregistré. »,
-déconnexion. `ui_web` rend la même `Application` dans un navigateur. `screens` charge un `Screen` par son
-nom, `transports` associe un nom à un `Transport`. `.run()` la lance.
+de `ui`), avec le même layout que `ui_web` dans un navigateur :
+
+- avant connexion, l'écran de connexion seul ;
+- ensuite une barre `#nav` : un menu déroulant (`Select`) par section, l'utilisateur connecté (`#user`) et
+  « Se déconnecter » (`#sign-out`), au-dessus d'une zone défilante `#main` : le message de bienvenue, les
+  écrans d'une entrée (pré-remplis depuis l'étape précédente), puis « Enregistré. ».
+
+`screens` charge un `Screen` par son nom, `transports` associe un nom à un `Transport`. `.run()` la lance.
 
 Un écran seul existe aussi comme widget, `ScreenForm(screen, transport, on_result)` : un appel refusé
 affiche son message dans la ligne `#status`, un appel réussi est passé à `on_result`.
