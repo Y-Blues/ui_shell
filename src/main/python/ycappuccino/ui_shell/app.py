@@ -5,6 +5,7 @@ from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
+from textual.widget import Widget
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label, Select
 
 from ycappuccino.ui.model import Field, Screen
@@ -18,7 +19,7 @@ _ACTION_PREFIX = "action-"
 
 class ScreenApp(App):
 
-    def __init__(self, screen: Screen, transport: Transport):
+    def __init__(self, screen: Screen, transport: Transport) -> None:
         super().__init__()
         self._screen = screen
         self._transport = transport
@@ -65,7 +66,7 @@ class ScreenApp(App):
             label.update(errors.get(a_field.name, ""))
 
 
-def _build_widget(a_field: Field):
+def _build_widget(a_field: Field) -> Widget:
     widget_id = f"{_FIELD_PREFIX}{a_field.name}"
     if a_field.type == "boolean":
         return Checkbox(value=bool(a_field.default), id=widget_id)
@@ -76,7 +77,7 @@ def _build_widget(a_field: Field):
     return Input(value=value, password=a_field.type == "password", id=widget_id)
 
 
-def _widget_value(a_field: Field, widget) -> Any:
+def _widget_value(a_field: Field, widget: Widget) -> Any:
     if a_field.type in ("boolean", "choice"):
         value = widget.value
         return None if value is Select.NULL else value
@@ -87,7 +88,7 @@ def _widget_value(a_field: Field, widget) -> Any:
     return widget.value
 
 
-def _to_number(raw: str):
+def _to_number(raw: str) -> int | float:
     try:
         return int(raw)
     except ValueError:
